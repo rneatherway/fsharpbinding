@@ -210,7 +210,7 @@ type internal IntelliSenseAgent() =
       match identIsland with
       | [ "" ] ->
         // There is no identifier at the current location
-        ()
+        printfn "DATA: tooltip\n<<EOF>>"
       | _ ->
         // Assume that we are inside identifier (F# services can also handle
         // case when we're in a string in '#r "Foo.dll"' but we don't do that)
@@ -248,7 +248,7 @@ type internal IntelliSenseAgent() =
       match identIsland with
       | [ "" ] ->
         // There is no identifier at the current location
-        ()
+        printfn "DATA: finddecl\n<<EOF>>"
       | _ ->
         // Assume that we are inside identifier (F# services can also handle
         // case when we're in a string in '#r "Foo.dll"' but we don't do that)
@@ -398,10 +398,13 @@ module internal CommandInput =
     return Error("ERROR: Unknown command or wrong arguments\n<<EOF>>") }
 
   // Parase any of the supported commands
-  let parseCommand input =
-    let reader = Parsing.createForwardStringReader input 0
-    let cmds = errors <|> help <|> declarations <|> parse <|> project <|> completionTipOrDecl <|> quit <|> error
-    reader |> Parsing.getFirst cmds
+  let parseCommand =
+    function
+    | null -> Quit
+    | input ->
+      let reader = Parsing.createForwardStringReader input 0
+      let cmds = errors <|> help <|> declarations <|> parse <|> project <|> completionTipOrDecl <|> quit <|> error
+      reader |> Parsing.getFirst cmds
 
 // --------------------------------------------------------------------------------------
 // Main application command-line loop
