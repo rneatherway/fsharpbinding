@@ -177,6 +177,7 @@ display in a help buffer instead.")
     (setq fsharp-ac-idle-timer
           (run-with-idle-timer fsharp-ac-idle-timeout t 'fsharp-ac-request-errors))))
 
+
 ; Consider using 'text' for filtering
 ; TODO: This caching is a bit optimistic. It might not always be correct
 ;       to use the cached values if the line and col just happen to line up.

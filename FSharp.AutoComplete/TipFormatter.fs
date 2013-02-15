@@ -4,6 +4,8 @@
 module internal FSharp.InteractiveAutocomplete.TipFormatter
 
 open System.Text
+open System.IO
+open System.Xml
 open Microsoft.FSharp.Compiler.SourceCodeServices
 
 // --------------------------------------------------------------------------------------
@@ -15,6 +17,15 @@ let private buildFormatComment cmt (sb:StringBuilder) =
   | XmlCommentText(s) -> sb.AppendLine(s)
   // For 'XmlCommentSignature' we could get documentation from 'xml'
   // files, but I'm not sure whether these are available on Mono
+  | XmlCommentSignature(s1,s2) ->
+      let xmlfile = Path.Combine
+                      (Path.Combine ((Path.GetDirectoryName s1),
+                                     (Path.GetFileNameWithoutExtension s1)),
+                       ".xml")
+      if File.Exists(xmlfile) then
+        let doc = new XmlDocument()
+        doc.Lo
+      sb.AppendLine("XmlCommentSig:").AppendLine(s1).AppendLine(s2).AppendLine("-----")
   | _ -> sb
 
 // If 'isSingle' is true (meaning that this is the only tip displayed)
