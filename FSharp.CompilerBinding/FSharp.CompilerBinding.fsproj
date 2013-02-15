@@ -19,7 +19,7 @@
     <DefineConstants>DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <Tailcalls>False</Tailcalls>
-    <DocumentationFile>bin\Release\Test1.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\FSharp.CompilerBinding.dll.xml</DocumentationFile>
     <ConsolePause>False</ConsolePause>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -30,7 +30,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <Tailcalls>True</Tailcalls>
-    <DocumentationFile>bin\Release\Test1.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\FSharp.CompilerBinding.dll.xml</DocumentationFile>
     <ConsolePause>False</ConsolePause>
   </PropertyGroup>
   <ItemGroup>

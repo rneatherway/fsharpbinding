@@ -1,0 +1,1 @@
+Gives some debug output when running ResolveAssemblyReference to see if it picks up .xml files.

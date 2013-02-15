@@ -18,13 +18,14 @@ let private buildFormatComment cmt (sb:StringBuilder) =
   // For 'XmlCommentSignature' we could get documentation from 'xml'
   // files, but I'm not sure whether these are available on Mono
   | XmlCommentSignature(s1,s2) ->
-      let xmlfile = Path.Combine
-                      (Path.Combine ((Path.GetDirectoryName s1),
-                                     (Path.GetFileNameWithoutExtension s1)),
-                       ".xml")
-      if File.Exists(xmlfile) then
-        let doc = new XmlDocument()
-        doc.Lo
+    
+      // let xmlfile = Path.Combine
+      //                 (Path.Combine ((Path.GetDirectoryName s1),
+      //                                (Path.GetFileNameWithoutExtension s1)),
+      //                  ".xml")
+      // if File.Exists(xmlfile) then
+      //   let doc = new XmlDocument()
+      //   doc.Lo
       sb.AppendLine("XmlCommentSig:").AppendLine(s1).AppendLine(s2).AppendLine("-----")
   | _ -> sb
 
