@@ -46,7 +46,22 @@ module ProjectParser =
   // or [|"ResolveProjectReferences";"ResolveAssemblyReferences"|]. These seem
   // to be equivalent. See Microsoft.Common.targets if you want more info.
   let getReferences (p: ProjectResolver) : string array =
+    Debug.printc "Resolve" "%s"
+      (p.project.GetEvaluatedProperty("AllowedReferenceRelatedFileExtensions"))
     ignore <| p.project.Build([|"ResolveReferences"|])
+    Debug.printc "Resolve" "RelatedFiles:"
+    for i in p.project.GetEvaluatedItemsByName("RelatedFiles")
+         do Debug.printc "Resolve" "%s" i.FinalItemSpec
+    Debug.printc "Resolve" "_ReferenceRelatedPaths:"
+    for i in p.project.GetEvaluatedItemsByName("_ReferenceRelatedPaths")
+         do Debug.printc "Resolve" "%s" i.FinalItemSpec
+    Debug.printc "Resolve" "ReferenceSatellitePaths:"
+    for i in p.project.GetEvaluatedItemsByName("ReferenceSatellitePaths")
+         do Debug.printc "Resolve" "%s" i.FinalItemSpec
+    Debug.printc "Resolve" "ReferenceCopyLocalPaths:"
+    for i in p.project.GetEvaluatedItemsByName("ReferenceCopyLocalPaths")
+         do Debug.printc "Resolve" "%s" i.FinalItemSpec
+    
     [| for i in p.project.GetEvaluatedItemsByName("ResolvedFiles")
          do yield "-r:" + i.FinalItemSpec |]
 
