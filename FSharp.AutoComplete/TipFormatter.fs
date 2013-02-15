@@ -5,7 +5,7 @@ module internal FSharp.InteractiveAutocomplete.TipFormatter
 
 open System.Text
 open System.IO
-open System.Xml
+open System.Xml.Linq
 open Microsoft.FSharp.Compiler.SourceCodeServices
 
 // --------------------------------------------------------------------------------------
@@ -19,15 +19,37 @@ let private buildFormatComment cmt (sb:StringBuilder) =
   // files, but I'm not sure whether these are available on Mono
   | XmlCommentSignature(s1,s2) ->
     
-      // let xmlfile = Path.Combine
-      //                 (Path.Combine ((Path.GetDirectoryName s1),
-      //                                (Path.GetFileNameWithoutExtension s1)),
-      //                  ".xml")
-      // if File.Exists(xmlfile) then
-      //   let doc = new XmlDocument()
-      //   doc.Lo
-      sb.AppendLine("XmlCommentSig:").AppendLine(s1).AppendLine(s2).AppendLine("-----")
+      let root = Path.Combine ((Path.GetDirectoryName s1),
+                               (Path.GetFileNameWithoutExtension s1))
+      let x = List.map
+      let xmlfile =
+        let f1 = Path.ChangeExtension(s1, ".xml")
+        Debug.printc "XmlSig" "Looking for '%s'" f1
+        let f2 = Path.ChangeExtension(s1, ".XML")
+        Debug.printc "XmlSig" "... or '%s'" f2
+        if File.Exists f1 then Some f1
+        else if File.Exists f2 then Some f2
+        else None
+
+      let xn s = XName.Get s
+      Debug.printc "XmlSig" "%s, %s" s1 s2
+      match xmlfile with
+      | None -> sb
+      | Some f ->
+          Debug.printc "XmlSig" "'%s' exists!" f
+          let doc = XDocument.Load f
+          let node =
+            doc.Element(xn "doc").Element(xn "members").Elements(xn "member")
+            |> Seq.tryFind (fun xe -> xe.Attribute(xn "name").Value = s2)
+          Debug.printc "XmlSig" "node found: %b" (Option.isSome node)
+          match node with
+          | None -> sb
+          | Some n -> sb.AppendLine(n.Element(xn "summary").Value)
+
   | _ -> sb
+
+let newfunction s =
+  List.map ((+) 1) [1..3]
 
 // If 'isSingle' is true (meaning that this is the only tip displayed)
 // then we add first line "Multiple overloads" because MD prints first
