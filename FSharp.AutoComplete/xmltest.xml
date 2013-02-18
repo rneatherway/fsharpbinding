@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doc>
+<assembly><name>FSharp.Core</name></assembly>
+<members>
+<member name="P:Microsoft.FSharp.Collections.FSharpList`1.Tail">
+ <summary>Gets the tail of the list, which is a list containing all the elements of the list, excluding the first element </summary>
+</member>
+<member name="P:Microsoft.FSharp.Collections.FSharpList`1.Length">
+ <summary>Gets the number of items contained in the list</summary>
+</member>
+</members>
+</doc>
