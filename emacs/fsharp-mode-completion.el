@@ -24,6 +24,7 @@
 ;; Boston, MA 02110-1301, USA.
 
 (require 'cl)
+(require 'pos-tip)
 
 ; User-configurable variables
 
@@ -39,8 +40,7 @@
       (windows-nt exe)
       (otherwise (list "mono" exe)))))
 
-(defvar ac-fsharp-use-pos-tip (and (featurep 'pos-tip)
-                                   (display-graphic-p))
+(defvar ac-fsharp-use-pos-tip (display-graphic-p)
   "If non-nil, use display tooltip pop-ups when available. Otherwise, fall back to minibuffer.")
 
 ; Both in seconds. Note that background process uses ms.
@@ -225,7 +225,6 @@
 (defun ac-fsharp-tooltip-at-point ()
   "Fetch and display F# tooltips at point"
   (interactive)
-  (require 'pos-tip)
   (when (ac-fsharp-can-make-request)
     (ac-fsharp-parse-current-buffer)
     (ac-fsharp-send-pos-request "tooltip"
@@ -377,8 +376,7 @@ possibly many lines of description.")
          ((string/starts-with msg "DATA: tooltip")
           (let ((data (replace-regexp-in-string "DATA: tooltip\n" "" msg)))
             (cond
-             ((and ac-fsharp-use-pos-tip
-                   (fboundp 'pos-tip-show))
+             (ac-fsharp-use-pos-tip
               (pos-tip-show data))
              ((fboundp 'fsharp-doc/format-for-minibuffer)
               (message (fsharp-doc/format-for-minibuffer data)))
