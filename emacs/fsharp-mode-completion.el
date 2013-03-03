@@ -23,29 +23,42 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
 
-(require 'cl)
+(require 'namespaces)
 
-; User-configurable variables
+(namespace fsharp-mode-completion
+  :export
+  [load-project
+   start-process
+   show-tooltip-at-point
+   show-typesig-at-point]
+  :use
+  [(popup popup-tip)
+   (pos-tip pos-tip-show)
+   s
+   (fsharp-doc fsharp-doc/format-for-minibuffer)
+   (fsharp-mode-indent fsharp-in-literal-p)])
+
+;;; User-configurable variables
 
 (defvar ac-fsharp-executable "fsautocomplete.exe")
 
 (defvar ac-fsharp-complete-command
-  (let ((exe
-         (if (executable-find ac-fsharp-executable)
-             (executable-find ac-fsharp-executable)
-           (concat (file-name-directory (or load-file-name buffer-file-name))
-                   "/bin/" ac-fsharp-executable))))
+  (let ((exe (or (executable-find ac-fsharp-executable)
+                 (concat (file-name-directory (or load-file-name buffer-file-name))
+                         "bin/" ac-fsharp-executable))))
     (case system-type
       (windows-nt exe)
       (otherwise (list "mono" exe)))))
 
-(defvar ac-fsharp-use-pos-tip (and (featurep 'pos-tip)
-                                   (display-graphic-p))
-  "If non-nil, use display tooltip pop-ups when available. Otherwise, fall back to minibuffer.")
+(defvar ac-fsharp-use-popup t
+  "Display tooltips using a popup at point. If set to nil,
+display in a help buffer instead.")
 
 ; Both in seconds. Note that background process uses ms.
 (defvar ac-fsharp-blocking-timeout 1)
 (defvar ac-fsharp-idle-timeout 1)
+
+;;; ----------------------------------------------------------------------------
 
 (defvar ac-fsharp-status 'idle)
 (defvar ac-fsharp-completion-process nil)
@@ -56,9 +69,6 @@
 (defvar ac-fsharp-idle-timer nil)
 (defvar ac-fsharp-verbose nil)
 (defvar ac-fsharp-waiting nil)
-
-(defconst eom "\n<<EOF>>\n"
-  "End of message marker")
 
 (defun log-to-proc-buf (proc str)
   (when (processp proc)
@@ -80,7 +90,7 @@
 (defun ac-fsharp-parse-current-buffer ()
   (save-restriction
     (widen)
-    (log-psendstr
+    (process-send-string
      ac-fsharp-completion-process
      (format "parse \"%s\" full\n%s\n<<EOF>>\n"
              (buffer-file-name)
@@ -91,8 +101,11 @@
     (ac-fsharp-parse-current-buffer)))
 
 ;;;###autoload
-(defun ac-fsharp-load-project (file)
+(defn load-project (file)
   "Load the specified F# file as a project"
+  (assert (equal "fsproj" (file-name-extension file))  ()
+          "The given file was not an F# project.")
+
   ;; Prompt user for an fsproj, searching for a default.
   (interactive
    (list (read-file-name
@@ -100,15 +113,17 @@
           (fsharp-mode/find-fsproj buffer-file-name)
           (fsharp-mode/find-fsproj buffer-file-name))))
 
-  (setq ac-fsharp-completion-cache nil)
-  (setq ac-fsharp-partial-data nil)
-  (setq ac-fsharp-project-files nil)
-  (unless ac-fsharp-completion-process
-    (ac-fsharp-launch-completion-process))
-  (log-psendstr ac-fsharp-completion-process
-                (format "project \"%s\"\n" (expand-file-name file))))
+  ;; Reset state.
+  (setq ac-fsharp-completion-cache nil
+        ac-fsharp-partial-data nil
+        ac-fsharp-project-files nil)
 
-
+  ;; Launch the completion process and update the current project.
+  (let ((f (expand-file-name file)))
+    (unless ac-fsharp-completion-process
+      (_ start-process))
+    (log-psendstr ac-fsharp-completion-process
+                  (format "project \"%s\"\n" (expand-file-name file)))))
 
 (defun ac-fsharp-send-pos-request (cmd file line col)
   (let ((request (format "%s \"%s\" %d %d %d\n" cmd file line col
@@ -143,7 +158,7 @@
   (ac-fsharp-clear-errors))
 
 ;;;###autoload
-(defun ac-fsharp-launch-completion-process ()
+(defn start-process ()
   "Launch the F# completion process in the background"
   (interactive)
   (if ac-fsharp-completion-process
@@ -159,7 +174,7 @@
 
     (if (process-live-p ac-fsharp-completion-process)
         (progn
-          (set-process-filter ac-fsharp-completion-process 'ac-fsharp-filter-output)
+          (set-process-filter ac-fsharp-completion-process (~ filter-output))
           (set-process-query-on-exit-flag ac-fsharp-completion-process nil)
           (setq ac-fsharp-status 'idle)
           (setq ac-fsharp-partial-data "")
@@ -175,7 +190,6 @@
   ;(add-hook 'before-save-hook 'ac-fsharp-reparse-buffer)
   ;(local-set-key (kbd ".") 'completion-at-point)
   )
-
 
 ; Consider using 'text' for filtering
 ; TODO: This caching is a bit optimistic. It might not always be correct
@@ -221,11 +235,19 @@
         (member (expand-file-name (buffer-file-name)) ac-fsharp-project-files)
         (string-match-p "\\(fsx\\|fsscript\\)" (file-name-extension (buffer-file-name))))))
 
+(defmutable awaiting-tooltip nil)
+
 ;;;###autoload
-(defun ac-fsharp-tooltip-at-point ()
-  "Fetch and display F# tooltips at point"
+(defn show-tooltip-at-point ()
+  "Display a tooltip for the F# symbol at POINT."
   (interactive)
-  (require 'pos-tip)
+  (@set awaiting-tooltip t)
+  (_ show-typesig-at-point))
+
+;;;###autoload
+(defn show-typesig-at-point ()
+  "Display the type signature for the F# symbol at POINT."
+  (interactive)
   (when (ac-fsharp-can-make-request)
     (ac-fsharp-parse-current-buffer)
     (ac-fsharp-send-pos-request "tooltip"
@@ -264,17 +286,15 @@
 starts with a character range for position and is followed by
 possibly many lines of description.")
 
-
-
 (defun ac-fsharp-show-errors (errors)
   (ac-fsharp-clear-errors)
   (save-match-data
     (while (string-match ac-fsharp-error-regexp errors)
       (ac-fsharp-show-error-overlay
-       (line-column-to-pos (+ (string-to-int (match-string 1 errors)) 1)
-                           (string-to-int (match-string 2 errors)))
-       (line-column-to-pos (+ (string-to-int (match-string 3 errors)) 1)
-                           (string-to-int (match-string 4 errors)))
+       (line-column-to-pos (+ (string-to-number (match-string 1 errors)) 1)
+                           (string-to-number (match-string 2 errors)))
+       (line-column-to-pos (+ (string-to-number (match-string 3 errors)) 1)
+                           (string-to-number (match-string 4 errors)))
        (if (string= "ERROR" (match-string 5 errors))
            'fsharp-error-face
          'fsharp-warning-face)
@@ -291,7 +311,8 @@ possibly many lines of description.")
      :weight bold
      :underline "Red"
      ))
-  "Face used for marking an error in F#")
+  "Face used for marking an error in F#"
+  :group 'fsharp)
 
 (defface fsharp-warning-face
   '(
@@ -302,8 +323,9 @@ possibly many lines of description.")
     (((class color) (background light))
      :weight bold
      :underline "Blue"
-    ))
-  "Face used for marking a warning in F#")
+     ))
+  "Face used for marking a warning in F#"
+  :group 'fsharp)
 
 (defun ac-fsharp-show-error-overlay (p1 p2 face txt)
   "Overlay the text from p1 to p2 to indicate an error is present here.
@@ -331,86 +353,99 @@ possibly many lines of description.")
 (defun ac-fsharp-stash-partial (str)
   (setq ac-fsharp-partial-data (concat ac-fsharp-partial-data str)))
 
-(defun string/starts-with (s arg)
-  "returns non-nil if string S starts with ARG.  Else nil."
-  (cond ((>= (length s) (length arg))
-         (string-equal (substring s 0 (length arg)) arg))
-        (t nil)))
-
-(defun string/ends-with (s ending)
-  "return non-nil if string S ends with ENDING."
-  (let ((elength (length ending)))
-    (string= (substring s (- 0 elength)) ending)))
-
 (defun ac-fsharp-electric-dot ()
   (interactive)
   (insert ".")
-  (unless (fsharp-in-literal)
+  (unless (fsharp-in-literal-p)
     (completion-at-point)))
 
-(defun ac-fsharp-filter-output (proc str)
+;;; ----------------------------------------------------------------------------
+;;; Process handling
+;;; Handle output from the completion process.
 
+(def eom "\n<<EOF>>\n")
+
+(defn filter-output (proc str)
+  "Filter output from the completion process and handle appropriately."
   (log-to-proc-buf proc str)
   (ac-fsharp-stash-partial str)
 
-  (let ((eofloc (string-match-p eom ac-fsharp-partial-data)))
-    (when eofloc
-      (let ((msg (substring ac-fsharp-partial-data 0 eofloc)))
+  (let ((eofloc (string-match-p (@ eom) ac-fsharp-partial-data)))
+    (while eofloc
+      (let ((msg  (substring ac-fsharp-partial-data 0 eofloc))
+            (part (substring ac-fsharp-partial-data (+ eofloc (length (@ eom))))))
         (cond
-         ((string/starts-with msg "DATA: completion")
-          (setq ac-fsharp-completion-data
-                (split-string
-                 (replace-regexp-in-string "DATA: completion" "" msg)
-                 "\n"
-                 t))
-          (setq ac-fsharp-waiting nil))
-
-         ((string/starts-with msg "DATA: finddecl")
-          (if (string-match "\n\\(.*\\):\\([0-9]+\\):\\([0-9]+\\)" msg)
-              (let ((file (match-string 1 msg))
-                    (line (+ 1 (string-to-int (match-string 2 msg))))
-                    (col (string-to-int (match-string 3 msg))))
-                (find-file (match-string 1 msg))
-                (goto-char (line-column-to-pos line col)))
-            (message "Error: unable to find definition")))
-
-         ((string/starts-with msg "DATA: tooltip")
-          (let ((data (replace-regexp-in-string "DATA: tooltip\n" "" msg)))
-            (cond
-             ((and ac-fsharp-use-pos-tip
-                   (fboundp 'pos-tip-show))
-              (pos-tip-show data))
-             ((fboundp 'fsharp-doc/format-for-minibuffer)
-              (message (fsharp-doc/format-for-minibuffer data)))
-             (t
-              (message data)))))
-
-         ((string/starts-with msg "DATA: errors")
-          (ac-fsharp-show-errors
-           (concat (replace-regexp-in-string "DATA: errors\n" "" msg) "\n")))
-
-         ((string/starts-with msg "DATA: project")
-          (setq ac-fsharp-project-files
-                (cdr (split-string msg "\n")))
-          (ac-fsharp-parse-file (car (last ac-fsharp-project-files))))
-
-         ((string/starts-with msg "INFO: ")
-          (when ac-fsharp-verbose
-            (message msg)))
-
-         ((string/starts-with msg "ERROR: ")
-          (message msg)
-          (when ac-fsharp-waiting
-            (setq ac-fsharp-completion-data nil)
-            (setq ac-fsharp-waiting nil)))
-
+         ((s-starts-with? "DATA: completion" msg) (_ set-completion-data msg))
+         ((s-starts-with? "DATA: finddecl" msg)   (_ visit-definition msg))
+         ((s-starts-with? "DATA: tooltip" msg)    (_ handle-tooltip msg))
+         ((s-starts-with? "DATA: errors" msg)     (_ display-parse-errors msg))
+         ((s-starts-with? "DATA: project" msg)    (_ handle-project msg))
+         ((s-starts-with? "ERROR: " msg)          (_ handle-process-error msg))
+         ((s-starts-with? "INFO: " msg) (when ac-fsharp-verbose (message msg)))
          (t
-          (message (format "Error unrecognised message: '%s'" msg))))
+          (message "Error: unrecognised message: '%s'" msg)))
 
-        (setq ac-fsharp-partial-data (substring ac-fsharp-partial-data
-                                                (+ eofloc (length eom))))
-        (ac-fsharp-filter-output proc "")))))
+        (setq ac-fsharp-partial-data part))
+      (setq eofloc (string-match-p (@ eom) ac-fsharp-partial-data)))))
 
-(provide 'fsharp-mode-completion)
+(defn set-completion-data (str)
+  (setq ac-fsharp-completion-data (s-split "\n" (s-replace "DATA: completion" "" str) t)
+        ac-fsharp-waiting nil))
+
+(defn visit-definition (str)
+  (if (string-match "\n\\(.*\\):\\([0-9]+\\):\\([0-9]+\\)" str)
+      (let ((file (match-string 1 str))
+            (line (+ 1 (string-to-number (match-string 2 str))))
+            (col (string-to-number (match-string 3 str))))
+        (find-file (match-string 1 str))
+        (goto-char (line-column-to-pos line col)))
+    (message "Unable to find definition.")))
+
+(defn display-parse-errors (str)
+  (ac-fsharp-show-errors
+   (concat (replace-regexp-in-string "DATA: errors\n" "" str) "\n")))
+
+(defn handle-tooltip (str)
+  "Display information from the background process. If the user
+has requested a popup tooltip, display a popup. Otherwise,
+display a short summary in the minibuffer."
+  ;; Do not display if the current buffer is not an fsharp buffer.
+  (when (equal major-mode 'fsharp-mode)
+    (let ((cleaned (replace-regexp-in-string "DATA: tooltip\n" "" str)))
+
+      (if (@ awaiting-tooltip)
+          (progn
+            (@set awaiting-tooltip nil)
+            (if ac-fsharp-use-popup
+                (_ show-popup cleaned)
+              (_ show-info-window cleaned)))
+        (message (fsharp-doc/format-for-minibuffer cleaned))))))
+
+(defn show-popup (str)
+  (if (display-graphic-p)
+      (pos-tip-show str)
+    ;; Use unoptimized calculation for popup, making it less likely to
+    ;; wrap lines.
+    (let ((popup-use-optimized-column-computation nil) )
+      (popup-tip str))))
+
+(def info-buffer-name "*fsharp info*")
+
+(defn show-info-window (str)
+  (save-excursion
+    (let ((help-window-select t))
+      (with-help-window (@ info-buffer-name)
+        (princ str)))))
+
+(defn handle-project (str)
+  (setq ac-fsharp-project-files (cdr (split-string str "\n")))
+  (ac-fsharp-parse-file (car (last ac-fsharp-project-files))))
+
+(defn handle-process-error (str)
+  (unless (s-matches? "Could not get type information" str)
+    (message str))
+  (when ac-fsharp-waiting
+    (setq ac-fsharp-completion-data nil)
+    (setq ac-fsharp-waiting nil)))
 
 ;;; fsharp-mode-completion.el ends here
