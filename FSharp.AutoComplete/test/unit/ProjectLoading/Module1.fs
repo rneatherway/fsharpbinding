@@ -22,3 +22,12 @@ let Test2ndLevelDepsResolution () =
   rs |> Array.map Path.GetFileName
      |> should contain "Test1.dll"
 
+[<Test>]
+let TestProjectReferenceWithVersion () =
+  let p  = ProjectParser.load "../../data/TestMonodoc.fsproj"
+  Option.isSome p |> should be True
+  let rs = ProjectParser.getReferences p.Value
+  rs |> should haveLength 5
+  rs |> Array.map Path.GetFileName
+     |> should contain "monodoc.dll"
+

@@ -55,7 +55,7 @@ display in a help buffer instead.")
   :group 'fsharp)
 
 ;;; Both in seconds. Note that background process uses ms.
-(defvar fsharp-ac-blocking-timeout 1)
+(defvar fsharp-ac-blocking-timeout 0.4)
 (defvar fsharp-ac-idle-timeout 1)
 
 ;;; ----------------------------------------------------------------------------
