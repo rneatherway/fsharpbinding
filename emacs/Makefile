@@ -47,6 +47,12 @@ install : $(ac_exe) $(dest_root) $(dest_bin)
 # Copy bin folder.
 	cp -R $(bin_d) $(dest_root)
 
+package : VERSION = $(shell emacs -Q --batch --eval "(require 'package)" --eval "(princ (nth 2 (package-read-from-string (with-temp-buffer  (insert-file-contents \"fsharp-mode-pkg.el\") (buffer-string)))))")
+package : $(src_files) $(ac_exe)
+	mkdir -p fsharp-mode-$(VERSION)/bin
+	cp $(src_files) fsharp-mode-$(VERSION)
+	cp $(wildcard $(bin_d)/*.exe) $(wildcard $(bin_d)/*.dll) fsharp-mode-$(VERSION)/bin
+	tar cf fsharp-mode-$(VERSION).tar fsharp-mode-$(VERSION)
 
 $(dest_root) :; mkdir -p $(dest_root)
 $(dest_bin)  :; mkdir -p $(dest_bin)
