@@ -1,15 +1,21 @@
 open System
 open System.Diagnostics
 
+let isMono = Type.GetType ("Mono.Runtime") <> null
+
 type FSharpAutoCompleteWrapper() =
 
+  let fsauto = IO.Path.Combine([|__SOURCE_DIRECTORY__;
+                                "..";
+                                "..";
+                                "bin";
+                                "Debug";
+                                "fsautocomplete.exe"|])
   let p = new System.Diagnostics.Process()
 
   do
-    p.StartInfo.FileName  <- "mono"
-    p.StartInfo.Arguments <-
-      IO.Path.Combine(__SOURCE_DIRECTORY__,
-                      "../../bin/Debug/fsautocomplete.exe")
+    p.StartInfo.FileName  <- if isMono then "mono" else fsauto
+    p.StartInfo.Arguments <- if isMono then fsauto else ""
     p.StartInfo.RedirectStandardOutput <- true
     p.StartInfo.RedirectStandardError  <- true
     p.StartInfo.RedirectStandardInput  <- true
@@ -47,11 +53,15 @@ type FSharpAutoCompleteWrapper() =
 let installNuGetPkg s =
   let p = new System.Diagnostics.Process()
 
-  p.StartInfo.FileName  <- "mono"
+  let nuget = IO.Path.Combine([|__SOURCE_DIRECTORY__;
+                               ".."; ".."; ".."; "lib";
+                               "nuget"; "NuGet.exe"|])
+
+  p.StartInfo.FileName  <- if isMono then "mono" else nuget
   p.StartInfo.Arguments <-
-      IO.Path.Combine(__SOURCE_DIRECTORY__,
-                      "../../../lib/nuget/NuGet.exe")
+    (if isMono then nuget else "")
       + " install -ExcludeVersion "
       + s
+  p.StartInfo.UseShellExecute <- false
   p.Start () |> ignore
   
