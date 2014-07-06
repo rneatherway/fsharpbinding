@@ -36,6 +36,7 @@ build: MonoDevelop.FSharpBinding/MonoDevelop.FSharp.$(MDTAG).fsproj MonoDevelop.
 
 test:
 	xbuild MonoDevelop.FSharpBinding/MonoDevelop.FSharp.Tests/MonoDevelop.FSharp.Tests.fsproj /p:Configuration=$(config)
+	mono ../lib/NUnit.Runners.2.6.1/tools/nunit-console.exe MonoDevelop.FSharpBinding/MonoDevelop.FSharp.Tests/bin/Debug/MonoDevelop.FSharp.Tests.dll
 
 pack: build
 	-rm -fr pack/$(VERSION)/$(MDTAG)/$(config)
