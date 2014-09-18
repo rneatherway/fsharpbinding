@@ -15,15 +15,15 @@ install:
   - sudo apt-get install -yq fsharp
 
 script:
-  - echo -n "travis_fold:start:make1"
+  - echo "travis_fold:start:make1"
   - echo "output1"
-  - echo -n "travis_fold:end:make1"
-  - echo -n "travis_fold:start:make2"
+  - echo "travis_fold:end:make1"
+  - echo "travis_fold:start:make2"
   - echo "output2"
-  - echo -n "travis_fold:end:make2"
-  - echo -n "travis_fold:start:make3"
+  - echo "travis_fold:end:make2"
+  - echo "travis_fold:start:make3"
   - echo "output3"
-  - echo -n "travis_fold:end:make3"
+  - echo "travis_fold:end:make3"
   - exit 1
   - make
   - echo -n "travis_fold:end:make"
