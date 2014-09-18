@@ -16,8 +16,8 @@ install:
 
 script:
   - echo "travis_fold:start:make"; make; echo "travis_fold:end:make"
-  - echo "travis_fold:start:make unit-test"; make unit-test; echo "travis_fold:end:make unit-test"
-  - echo "travis_fold:start:make integration-test"; make integration-test; echo "travis_fold:end:make integration-test"
+  - echo "travis_fold:start:make_unit-test"; make unit-test; echo "travis_fold:end:make_unit-test"
+  - echo "travis_fold:start:make_integration-test"; make integration-test; echo "travis_fold:end:make_integration-test"
   - make -C emacs test
   - make -C emacs integration-test
   - make -C emacs check-compile
