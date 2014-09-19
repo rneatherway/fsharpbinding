@@ -15,23 +15,9 @@ install:
   - sudo apt-get install -yq fsharp
 
 script:
-  - echo -e "travis_fold:start:make1\nline1\nline2\ntravis_fold:end:make1\n"
-  - echo -e "travis_fold:start:make4\nline3\nline4\ntravis_fold:end:make4\n"
-  - echo "travis_fold:start:make2"
-  - echo "output2"
-  - echo "travis_fold:end:make2"
-  - echo "travis_fold:start:make3"
-  - echo "output3"
-  - echo "travis_fold:end:make3"
-  - exit 1
   - make
-  - echo -n "travis_fold:end:make"
-  - echo "travis_fold:start:unit"
   - make unit-test
-  - echo "travis_fold:end:unit"
-  - echo "travis_fold:start:integration"
   - make integration-test
-  - echo "travis_fold:end:integration"
   - make -C emacs test
   - make -C emacs integration-test
   - make -C emacs check-compile
