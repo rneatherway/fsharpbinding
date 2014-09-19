@@ -14,7 +14,11 @@ clean:
 	-rm -fr packages
 
 unit-test: all
-	FSharp.AutoComplete/test/unit/runtests.sh
+	@if [[ "$(TRAVIS)" = "true" ]]; echo "travis_fold:start:unit-test"; fi \
+	FSharp.AutoComplete/test/unit/runtests.sh \
+	ret=$? \
+	@if [[ "$(TRAVIS)" = "true" ]]; echo "travis_fold:end:unit-test"; fi \
+	[[ $(ret) -eq 0 ]]
 
 integration-test: all
 	FSharp.AutoComplete/test/integration/runtests.sh
