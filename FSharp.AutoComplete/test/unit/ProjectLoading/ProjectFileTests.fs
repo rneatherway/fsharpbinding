@@ -1,4 +1,4 @@
-module Module1
+module ProjectFileTests
 
 open NUnit.Framework
 open FsUnit
@@ -13,7 +13,7 @@ let TestProjectFiles () =
   let rs = p.Value.GetFiles
   rs |> should haveLength 2
   rs |> Array.map Path.GetFileName
-     |> should be [| "Test1File1.fs"; "Test1File2.fs" |]
+     |> should equal [| "Test1File1.fs"; "Test1File2.fs" |]
 
 [<Test>]
 let TestProjectFiles2 () =
@@ -22,4 +22,4 @@ let TestProjectFiles2 () =
   let rs = p.Value.GetFiles
   rs |> should haveLength 2
   rs |> Array.map Path.GetFileName
-     |> should be [| "Test2File1.fs"; "Test2File2.fs" |]
+     |> should equal [| "Test2File1.fs"; "Test2File2.fs" |]

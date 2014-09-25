@@ -1,4 +1,4 @@
-module Module1
+module ProjectReferenceTests
 
 open NUnit.Framework
 open FsUnit

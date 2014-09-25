@@ -393,12 +393,7 @@ module internal Main =
     | Project file ->
         // Load project file and store in state
         if File.Exists file then
-            let proj =
-              if Type.GetType ("Mono.Runtime") <> null then
-                MonoProjectParser.Load file
-              else
-                DotNetProjectParser.Load file
-            match proj with
+            match ProjectParser.load file with
             | Some p ->
               let files =
                   [ for f in p.GetFiles do

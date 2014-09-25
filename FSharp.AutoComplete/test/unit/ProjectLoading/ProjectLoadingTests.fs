@@ -9,10 +9,10 @@ open System.IO
 [<Test>]
 let TestProjectLoadDoesNotExist () =
   let p = ProjectParser.load "not_there.fsproj"
-  p |> should be None
+  p |> should equal None
 
 [<Test>]
 let TestProjectLoadMalformed () =
   let p = ProjectParser.load "../ProjectLoading/data/malformed.fsproj"
-  p |> should be None
+  p |> should equal None
 
