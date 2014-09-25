@@ -275,7 +275,7 @@ module internal CommandInput =
 type internal State =
   {
     Files : Map<string,string[]>
-    Project : Option<ProjectParser.IProjectResolver>
+    Project : Option<IProjectParser>
     OutputMode : OutputMode
     HelpText : Map<String, ToolTipText>
   }
@@ -393,17 +393,21 @@ module internal Main =
     | Project file ->
         // Load project file and store in state
         if File.Exists file then
-            let proj = ProjectParser.load file
+            let proj =
+              if Type.GetType ("Mono.Runtime") <> null then
+                MonoProjectParser.Load file
+              else
+                DotNetProjectParser.Load file
             match proj with
             | Some p ->
-                let files =
+              let files =
                   [ for f in p.GetFiles do
                       yield IO.Path.Combine(p.Directory, f) ]
-                let targetFilename = p.Output
-                match state.OutputMode with
-                | Text -> printAgent.WriteLine(sprintf "DATA: project\n%s\n<<EOF>>" (String.concat "\n" files))
-                | Json -> prAsJson { Kind = "project"; Data = { Files = files; Output = targetFilename } }
-                main { state with Project = Some p }
+              let targetFilename = p.Output
+              match state.OutputMode with
+              | Text -> printAgent.WriteLine(sprintf "DATA: project\n%s\n<<EOF>>" (String.concat "\n" files))
+              | Json -> prAsJson { Kind = "project"; Data = { Files = files; Output = targetFilename } }
+              main { state with Project = Some p }
             | None ->
                printMsg "ERROR" (sprintf "Project file '%s' is invalid" file)
                main state
