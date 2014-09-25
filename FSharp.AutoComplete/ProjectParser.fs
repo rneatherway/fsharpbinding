@@ -16,84 +16,94 @@ open FSharp.CompilerBinding
 
 module ProjectParser =
 
-  type ProjectResolver =
-    {
-      project:  Project
-      loadtime: DateTime
-    }
+  type IProjectResolver =
+    abstract FileName : string with get
+    abstract LoadTime : DateTime with get
+    abstract Directory : string with get
+    abstract member GetFiles : string array
+    abstract member FrameworkVersion : FSharpTargetFramework
+    abstract member Output : string
+    abstract member GetReferences : string array
+    abstract member GetOptions : string array
 
-  let load (uri: string) : Option<ProjectResolver> =
-    let p = new Project()
-    try
-      p.Load(uri)
-      Some { project = p; loadtime = DateTime.Now }
-    with :? InvalidProjectFileException as e ->
-      None
+  type MonoProjectResolver private (p: Project) =
 
-  let getFileName (p: ProjectResolver) : string = p.project.FullFileName
+    let loadtime = DateTime.Now
 
-  let getLoadTime (p: ProjectResolver) : DateTime = p.loadtime
+    static member Load (uri : string) : Option<IProjectResolver> =
+      let p = new Project()
+      try
+        p.Load(uri)
+        Some (new MonoProjectResolver(p) :> IProjectResolver)
+      with :? InvalidProjectFileException as e ->
+        None
 
-  let getDirectory (p: ProjectResolver) : string =
-    IO.Path.GetDirectoryName p.project.FullFileName
+    member private x.Dir = IO.Path.GetDirectoryName p.FullFileName
 
-  let getFiles (p: ProjectResolver) : string array =
-    let fs  = p.project.GetEvaluatedItemsByName("Compile")
-    let dir = getDirectory p
-    [| for f in fs do yield IO.Path.Combine(dir, f.FinalItemSpec) |]
+    interface IProjectResolver with
+      member x.FileName = p.FullFileName
+      member x.LoadTime = loadtime
+      member x.Directory = x.Dir
 
-  let getFrameworkVersion (p: ProjectResolver) =
-    match p.project.GetEvaluatedProperty("TargetFrameworkVersion") with
-    | "v2.0" -> FSharpTargetFramework.NET_2_0
-    | "v3.0" -> FSharpTargetFramework.NET_3_0
-    | "v3.5" -> FSharpTargetFramework.NET_3_5
-    | "v4.0" -> FSharpTargetFramework.NET_4_0
-    | "v4.5" -> FSharpTargetFramework.NET_4_5
-    | _      -> FSharpTargetFramework.NET_4_5
+      member x.GetFiles =
+        let fs  = p.GetEvaluatedItemsByName("Compile")
+        let dir = (x :> IProjectResolver).Directory
+        [| for f in fs do yield IO.Path.Combine(dir, f.FinalItemSpec) |]
 
-  let getOutput (p: ProjectResolver) : string =
-    let b = p.project.Build("GetTargetPath")
+      member x.FrameworkVersion =
+        match p.GetEvaluatedProperty("TargetFrameworkVersion") with
+        | "v2.0" -> FSharpTargetFramework.NET_2_0
+        | "v3.0" -> FSharpTargetFramework.NET_3_0
+        | "v3.5" -> FSharpTargetFramework.NET_3_5
+        | "v4.0" -> FSharpTargetFramework.NET_4_0
+        | "v4.5" -> FSharpTargetFramework.NET_4_5
+        | _      -> FSharpTargetFramework.NET_4_5
 
-    IO.Path.Combine(getDirectory p,
-                    (p.project.GetEvaluatedProperty "OutDir"),
-                    (p.project.GetEvaluatedProperty "TargetFileName"))
+      member x.Output =
+        let b = p.Build("GetTargetPath")
 
-  // We really want the output of ResolveAssemblyReferences. However, this
-  // needs as input ChildProjectReferences, which is populated by
-  // ResolveProjectReferences. For some reason ResolveAssemblyReferences
-  // does not depend on ResolveProjectReferences, so if we don't run it first
-  // then we won't get the dll files for imported projects in this list.
-  // We can therefore build ResolveReferences, which depends on both of them,
-  // or [|"ResolveProjectReferences";"ResolveAssemblyReferences"|]. These seem
-  // to be equivalent. See Microsoft.Common.targets if you want more info.
-  let getReferences (p: ProjectResolver) : string array =
-    ignore <| p.project.Build([|"ResolveReferences"|])
-    [| for i in p.project.GetEvaluatedItemsByName("ResolvedFiles")
-         do yield "-r:" + i.FinalItemSpec |]
+        IO.Path.Combine(x.Dir,
+                        (p.GetEvaluatedProperty "OutDir"),
+                        (p.GetEvaluatedProperty "TargetFileName"))
 
-  let getOptions (p: ProjectResolver) : string array =
-    let getprop s = p.project.GetEvaluatedProperty s
-    let split (s: string) (cs: char[]) =
-      if s = null then [||]
-      else s.Split(cs, StringSplitOptions.RemoveEmptyEntries)
-    let getbool (s: string) =
-      match (Boolean.TryParse s) with
-      | (true, result) -> result
-      | (false, _) -> false
-    let optimize     = getprop "Optimize" |> getbool
-    let tailcalls    = getprop "Tailcalls" |> getbool
-    let debugsymbols = getprop "DebugSymbols" |> getbool
-    let defines = split (getprop "DefineConstants") [|';';',';' '|]
-    let otherflags = getprop "OtherFlags" 
-    let otherflags = if otherflags = null
-                     then [||]
-                     else split otherflags [|' '|]
-    [|
-      yield "--noframework"
-      for symbol in defines do yield "--define:" + symbol
-      yield if debugsymbols then  "--debug+" else  "--debug-"
-      yield if optimize then "--optimize+" else "--optimize-"
-      yield if tailcalls then "--tailcalls+" else "--tailcalls-"
-      yield! otherflags
-      yield! (getReferences p)
-     |]
+      // We really want the output of ResolveAssemblyReferences. However, this
+      // needs as input ChildProjectReferences, which is populated by
+      // ResolveProjectReferences. For some reason ResolveAssemblyReferences
+      // does not depend on ResolveProjectReferences, so if we don't run it first
+      // then we won't get the dll files for imported projects in this list.
+      // We can therefore build ResolveReferences, which depends on both of them,
+      // or [|"ResolveProjectReferences";"ResolveAssemblyReferences"|]. These seem
+      // to be equivalent. See Microsoft.Common.targets if you want more info.
+      member x.GetReferences =
+        ignore <| p.Build([|"ResolveReferences"|])
+        [| for i in p.GetEvaluatedItemsByName("ResolvedFiles")
+             do yield "-r:" + i.FinalItemSpec |]
+
+      member x.GetOptions =
+        let getprop s = p.GetEvaluatedProperty s
+        let split (s: string) (cs: char[]) =
+          if s = null then [||]
+          else s.Split(cs, StringSplitOptions.RemoveEmptyEntries)
+        let getbool (s: string) =
+          match (Boolean.TryParse s) with
+          | (true, result) -> result
+          | (false, _) -> false
+        let optimize     = getprop "Optimize" |> getbool
+        let tailcalls    = getprop "Tailcalls" |> getbool
+        let debugsymbols = getprop "DebugSymbols" |> getbool
+        let defines = split (getprop "DefineConstants") [|';';',';' '|]
+        let otherflags = getprop "OtherFlags" 
+        let otherflags = if otherflags = null
+                         then [||]
+                         else split otherflags [|' '|]
+        [|
+          yield "--noframework"
+          for symbol in defines do yield "--define:" + symbol
+          yield if debugsymbols then  "--debug+" else  "--debug-"
+          yield if optimize then "--optimize+" else "--optimize-"
+          yield if tailcalls then "--tailcalls+" else "--tailcalls-"
+          yield! otherflags
+          yield! (x :> IProjectResolver).GetReferences
+         |]
+
+  let load fn = MonoProjectResolver.Load fn

@@ -8,16 +8,16 @@ open System.IO
 
 [<Test>]
 let TestProjectLibraryResolution () =
-  let p  = ProjectParser.load "../ProjectLoading/data/Test1.fsproj"
+  let p = ProjectParser.load "../ProjectLoading/data/Test1.fsproj"
   Option.isSome p |> should be True
-  let rs = ProjectParser.getReferences p.Value
+  let rs = p.Value.GetReferences
   rs |> should haveLength 4
 
 [<Test>]
 let Test2ndLevelDepsResolution () =
   let p  = ProjectParser.load "../ProjectLoading/data/Test2.fsproj"
   Option.isSome p |> should be True
-  let rs = ProjectParser.getReferences p.Value
+  let rs = p.Value.GetReferences
   rs |> should haveLength 6
   rs |> Array.map Path.GetFileName
      |> should contain "Test1.dll"
