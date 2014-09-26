@@ -21,4 +21,3 @@ let Test2ndLevelDepsResolution () =
   rs |> should haveLength 6
   rs |> Array.map Path.GetFileName
      |> should contain "Test1.dll"
-

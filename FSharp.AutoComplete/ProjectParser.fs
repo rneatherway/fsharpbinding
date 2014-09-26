@@ -1,5 +1,6 @@
-//#r @"C:\Program Files (x86)\MSBuild\12.0\bin\Microsoft.Build.dll"
-//#r @"C:\Program Files (x86)\MSBuild\12.0\bin\Microsoft.Build.Framework.dll"
+// --------------------------------------------------------------------------------------
+// (c) Robin Neatherway
+// --------------------------------------------------------------------------------------
 namespace FSharp.InteractiveAutocomplete
 
 open System

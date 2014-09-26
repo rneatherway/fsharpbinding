@@ -1,5 +1,6 @@
-//#r @"C:\Program Files (x86)\MSBuild\12.0\bin\Microsoft.Build.dll"
-//#r @"C:\Program Files (x86)\MSBuild\12.0\bin\Microsoft.Build.Framework.dll"
+// --------------------------------------------------------------------------------------
+// (c) Robin Neatherway
+// --------------------------------------------------------------------------------------
 namespace FSharp.InteractiveAutocomplete
 
 open System
@@ -13,8 +14,11 @@ type DotNetProjectParser private (p: ProjectInstance) =
   let loadtime = DateTime.Now
 
   static member Load (uri : string) : Option<IProjectParser> =
-    let p = new ProjectInstance(uri)
-    Some (new DotNetProjectParser(p) :> IProjectParser)
+    try
+      let p = new ProjectInstance(uri, dict [ "VisualStudioVersion", "12.0" ], "4.0")
+      Some (new DotNetProjectParser(p) :> IProjectParser)
+    with
+      | :? Exceptions.InvalidProjectFileException -> None
 
   member private x.Dir = p.Directory
 
@@ -38,11 +42,10 @@ type DotNetProjectParser private (p: ProjectInstance) =
       | _      -> FSharpTargetFramework.NET_4_5
 
     member x.Output =
-      let b = p.Build([|"GetTargetPath"|], [])
-
-      IO.Path.Combine(x.Dir,
-                      (p.GetPropertyValue "OutDir"),
-                      (p.GetPropertyValue "TargetFileName"))
+      if p.Build([|"GetTargetPath"|], []) then
+        p.GetPropertyValue "TargetPath"
+      else
+        "Build failed"
 
     // We really want the output of ResolveAssemblyReferences. However, this
     // needs as input ChildProjectReferences, which is populated by
@@ -53,10 +56,11 @@ type DotNetProjectParser private (p: ProjectInstance) =
     // or [|"ResolveProjectReferences";"ResolveAssemblyReferences"|]. These seem
     // to be equivalent. See Microsoft.Common.targets if you want more info.
     member x.GetReferences =
-      ignore <| p.Build([|"ResolveReferences"|], new Collections.Generic.HashSet<_>())
-
-      [| for i in p.GetItems("ReferencePath") do
-           yield "-r:" + i.EvaluatedInclude |]
+      if p.Build([|"ResolveReferences"|], []) then
+        [| for i in p.GetItems("ReferencePath") do
+             yield "-r:" + i.EvaluatedInclude |]
+      else
+        [|"Build failed"|]
 
     member x.GetOptions =
       let getprop s = p.GetPropertyValue s

@@ -9,9 +9,6 @@ namespace FSharp.InteractiveAutocomplete
 
 open System
 open Microsoft.Build.BuildEngine
-open Microsoft.Build.Framework
-open Microsoft.Build.Tasks
-open Microsoft.Build.Utilities
 open FSharp.CompilerBinding
 
 type MonoProjectParser private (p: Project) =
