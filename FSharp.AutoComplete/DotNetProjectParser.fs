@@ -22,6 +22,11 @@ type DotNetProjectParser private (p: ProjectInstance) =
 
   member private x.Dir = p.Directory
 
+  member x.GetAssemblyReferences =
+    ignore <| p.Build([|"ResolveAssemblyReferences"|], [])
+    [| for i in p.GetItems("ReferencePath") do
+         yield "-r:" + i.EvaluatedInclude |]
+
   interface IProjectParser with
     member x.FileName = p.FullPath
     member x.LoadTime = loadtime
@@ -47,20 +52,26 @@ type DotNetProjectParser private (p: ProjectInstance) =
       else
         "Build failed"
 
-    // We really want the output of ResolveAssemblyReferences. However, this
-    // needs as input ChildProjectReferences, which is populated by
-    // ResolveProjectReferences. For some reason ResolveAssemblyReferences
-    // does not depend on ResolveProjectReferences, so if we don't run it first
-    // then we won't get the dll files for imported projects in this list.
-    // We can therefore build ResolveReferences, which depends on both of them,
-    // or [|"ResolveProjectReferences";"ResolveAssemblyReferences"|]. These seem
-    // to be equivalent. See Microsoft.Common.targets if you want more info.
+    // On .NET MSBuild, it seems to be the case that child projects
+    // are built with the 'default targets' when trying to resolve
+    // assembly references recursively. This is a) overkill, and
+    // b) doesn't always succeed. Here we recursively descend through
+    // the projects getting their dependencies.
+    //
+    // This may not actually be necessary if parent projects are always
+    // required to explicitly reference assemblies containing types they
+    // need anyway.
     member x.GetReferences =
-      if p.Build([|"ResolveReferences"|], []) then
-        [| for i in p.GetItems("ReferencePath") do
-             yield "-r:" + i.EvaluatedInclude |]
-      else
-        [|"Build failed"|]
+      [|
+         yield! x.GetAssemblyReferences
+         for cp in p.GetItems("ProjectReferenceWithConfiguration") do
+           if cp.GetMetadataValue("ReferenceOutputAssembly")
+                .ToLower() = "true"
+           then
+             match DotNetProjectParser.Load (cp.GetMetadataValue("FullPath")) with
+             | None -> ()
+             | Some p -> yield! p.GetReferences
+      |]
 
     member x.GetOptions =
       let getprop s = p.GetPropertyValue s

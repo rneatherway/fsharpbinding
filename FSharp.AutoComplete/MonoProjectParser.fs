@@ -8,6 +8,7 @@ namespace FSharp.InteractiveAutocomplete
 #nowarn "0044"
 
 open System
+open System.IO
 open Microsoft.Build.BuildEngine
 open FSharp.CompilerBinding
 
@@ -17,10 +18,13 @@ type MonoProjectParser private (p: Project) =
 
   static member Load (uri : string) : Option<IProjectParser> =
     let p = new Project()
-    try
-      p.Load(uri)
-      Some (new MonoProjectParser(p) :> IProjectParser)
-    with :? InvalidProjectFileException as e ->
+    if File.Exists uri then
+      try
+        p.Load(uri)
+        Some (new MonoProjectParser(p) :> IProjectParser)
+      with :? InvalidProjectFileException ->
+        None
+    else
       None
 
   member private x.Dir = IO.Path.GetDirectoryName p.FullFileName
