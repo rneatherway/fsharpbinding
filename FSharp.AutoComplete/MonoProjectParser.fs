@@ -27,12 +27,10 @@ type MonoProjectParser private (p: Project) =
     else
       None
 
-  member private x.Dir = IO.Path.GetDirectoryName p.FullFileName
-
   interface IProjectParser with
     member x.FileName = p.FullFileName
     member x.LoadTime = loadtime
-    member x.Directory = x.Dir
+    member x.Directory = Path.GetDirectoryName (x :> IProjectParser).FileName
 
     member x.GetFiles =
       let fs  = p.GetEvaluatedItemsByName("Compile")
@@ -49,24 +47,21 @@ type MonoProjectParser private (p: Project) =
       | _      -> FSharpTargetFramework.NET_4_5
 
     member x.Output =
-      let b = p.Build("GetTargetPath")
-
-      IO.Path.Combine(x.Dir,
+      IO.Path.Combine((x :> IProjectParser).Directory,
                       (p.GetEvaluatedProperty "OutDir"),
                       (p.GetEvaluatedProperty "TargetFileName"))
 
-    // We really want the output of ResolveAssemblyReferences. However, this
-    // needs as input ChildProjectReferences, which is populated by
-    // ResolveProjectReferences. For some reason ResolveAssemblyReferences
-    // does not depend on ResolveProjectReferences, so if we don't run it first
-    // then we won't get the dll files for imported projects in this list.
-    // We can therefore build ResolveReferences, which depends on both of them,
-    // or [|"ResolveProjectReferences";"ResolveAssemblyReferences"|]. These seem
-    // to be equivalent. See Microsoft.Common.targets if you want more info.
     member x.GetReferences =
-      ignore <| p.Build([|"ResolveReferences"|])
+      let x = x :> IProjectParser
+      ignore <| p.Build([|"ResolveAssemblyReferences"|])
       [| for i in p.GetEvaluatedItemsByName("ResolvedFiles")
-           do yield "-r:" + i.FinalItemSpec |]
+           do yield "-r:" + i.FinalItemSpec
+         for i in p.GetEvaluatedItemsByName("ProjectReference") do
+           let fsproj = Path.Combine(x.Directory, i.FinalItemSpec)
+           match MonoProjectParser.Load fsproj with
+           | None -> ()
+           | Some cp -> yield Path.Combine(Path.GetDirectoryName x.Output,
+                                           Path.GetFileName cp.Output) |]
 
     member x.GetOptions =
       let getprop s = p.GetEvaluatedProperty s
