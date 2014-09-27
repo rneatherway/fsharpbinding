@@ -70,16 +70,21 @@ let runIntegrationTest (fn: string) : bool =
                                    "/.*?FSharp.AutoComplete/test/(.*?(\"|$))",
                                    "<absolute path removed>/test/$1")
       else
-        if Path.GetExtension fn = "json" then
-          lines.[i] <- Regex.Replace(lines.[i].Replace("\r\n","\n").Replace(@"\\", "/"),
+        if Path.GetExtension fn = ".json" then
+          lines.[i] <- Regex.Replace(lines.[i].Replace(@"\\", "/"),
                                      "[A-Z]:/.*?FSharp.AutoComplete/test/(.*?(\"|$))",
                                      "<absolute path removed>/test/$1")
         else
-          lines.[i] <- Regex.Replace(lines.[i].Replace("\r\n","\n").Replace('\\','/'),
+          lines.[i] <- Regex.Replace(lines.[i].Replace('\\','/'),
                                      "[A-Z]:/.*?FSharp.AutoComplete/test/(.*?(\"|$))",
                                      "<absolute path removed>/test/$1")
 
-    File.WriteAllLines (fn, lines)
+    // Write manually to ensure \n line endings on all platforms
+    using (new StreamWriter(fn))
+    <| fun f ->
+        for line in lines do
+          f.Write(line)
+          f.Write('\n')
   b
 
 Target "IntegrationTest" (fun _ ->
