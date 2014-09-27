@@ -62,12 +62,22 @@ let runIntegrationTest (fn: string) : bool =
 
   // Normalize output files so that a simple
   // `git diff` will be clean if the tests passed.
-  for fn in !! (dir + "/*.txt") do
+  for fn in !! (dir + "/*.txt") ++ (dir + "/*.json") do
     let lines = File.ReadAllLines fn
     for i in [ 0 .. lines.Length - 1 ] do
-      lines.[i] <- Regex.Replace(lines.[i],
-                                 "/.*?FSharp.AutoComplete/test/(.*?(\"|$))",
-                                 @"<absolute path removed>/test/$1")
+      if Path.DirectorySeparatorChar = '/' then
+        lines.[i] <- Regex.Replace(lines.[i],
+                                   "/.*?FSharp.AutoComplete/test/(.*?(\"|$))",
+                                   "<absolute path removed>/test/$1")
+      else
+        if Path.GetExtension fn = "json" then
+          lines.[i] <- Regex.Replace(lines.[i].Replace("\r\n","\n").Replace(@"\\", "/"),
+                                     "[A-Z]:/.*?FSharp.AutoComplete/test/(.*?(\"|$))",
+                                     "<absolute path removed>/test/$1")
+        else
+          lines.[i] <- Regex.Replace(lines.[i].Replace("\r\n","\n").Replace('\\','/'),
+                                     "[A-Z]:/.*?FSharp.AutoComplete/test/(.*?(\"|$))",
+                                     "<absolute path removed>/test/$1")
 
     File.WriteAllLines (fn, lines)
   b

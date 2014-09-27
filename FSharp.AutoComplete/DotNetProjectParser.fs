@@ -51,14 +51,11 @@ type DotNetProjectParser private (p: ProjectInstance) =
       ignore <| p.Build([|"ResolveAssemblyReferences"|], [])
       [| for i in p.GetItems("ReferencePath") do
            yield "-r:" + i.EvaluatedInclude
-         for cp in p.GetItems("ProjectReferenceWithConfiguration") do
-           if cp.GetMetadataValue("ReferenceOutputAssembly")
-                .ToLower() = "true"
-           then
-             match DotNetProjectParser.Load (cp.GetMetadataValue("FullPath")) with
-             | None -> ()
-             | Some p' -> yield Path.Combine(Path.GetDirectoryName (x :> IProjectParser).Output,
-                                             Path.GetFileName p'.Output)
+         for cp in p.GetItems("ProjectReference") do
+           match DotNetProjectParser.Load (cp.GetMetadataValue("FullPath")) with
+           | None -> ()
+           | Some p' -> yield Path.Combine(Path.GetDirectoryName (x :> IProjectParser).Output,
+                                           Path.GetFileName p'.Output)
       |]
 
     member x.GetOptions =
