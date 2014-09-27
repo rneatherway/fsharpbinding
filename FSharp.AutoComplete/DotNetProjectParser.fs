@@ -17,8 +17,15 @@ type DotNetProjectParser private (p: ProjectInstance) =
   static member Load (uri : string) : Option<IProjectParser> =
     try
       let visualStudioVersion =
-        let programFiles = Environment.GetFolderPath
-                             Environment.SpecialFolder.ProgramFiles
+        let pfx86 = Environment.GetFolderPath
+                             Environment.SpecialFolder.ProgramFilesX86
+
+        let programFiles = 
+          if String.IsNullOrWhiteSpace pfx86 then
+            Environment.GetFolderPath Environment.SpecialFolder.ProgramFiles
+          else
+            pfx86
+
         let fsharp31Dir = Path.Combine(programFiles,
                                        @"Microsoft SDKs\F#\3.1\Framework\v4.0")
 
