@@ -16,7 +16,16 @@ type DotNetProjectParser private (p: ProjectInstance) =
 
   static member Load (uri : string) : Option<IProjectParser> =
     try
-      let p = new ProjectInstance(uri, dict [ "VisualStudioVersion", "12.0" ], "4.0")
+      let visualStudioVersion =
+        let programFiles = Environment.GetFolderPath
+                             Environment.SpecialFolder.ProgramFiles
+        let fsharp31Dir = Path.Combine(programFiles,
+                                       @"Microsoft SDKs\F#\3.1\Framework\v4.0")
+
+        if Directory.Exists fsharp31Dir then "12.0" else "11.0"
+
+      let props = dict [ "VisualStudioVersion", visualStudioVersion ]
+      let p = new ProjectInstance(uri, props, "4.0")
       Some (new DotNetProjectParser(p) :> IProjectParser)
     with
       | :? Exceptions.InvalidProjectFileException -> None
