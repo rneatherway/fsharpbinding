@@ -166,11 +166,18 @@ Target "All" id
   ==> "BuildDebug"
   ==> "IntegrationTest"
 
+"EmacsBuild"
+  ==> "EmacsTest"
+
+"EmacsTest" ==> "Test"
 "UnitTest" ==> "Test"
 "IntegrationTest" ==> "Test"
 
 "BuildDebug" ==> "All"
 "Test" ==> "All"
-  
+
+
+tracefn "Machine Environment:\n%A"
+        (Fake.EnvironmentHelper.getMachineEnvironment())
 RunTargetOrDefault "BuildDebug"
 
