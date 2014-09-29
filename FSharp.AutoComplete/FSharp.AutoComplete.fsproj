@@ -67,6 +67,7 @@
     <Compile Include="ProjectParser.fs" />
     <Compile Include="Program.fs" />
     <None Include="packages.config" />
+    <None Include="build.fsx" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
