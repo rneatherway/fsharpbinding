@@ -1,6 +1,7 @@
 // include Fake lib
 #r @"packages/FAKE/tools/FakeLib.dll"
 open Fake
+open System
 open System.IO
 open System.Text.RegularExpressions
 
@@ -24,11 +25,6 @@ Target "BuildDebug" (fun _ ->
 
 Target "BuildRelease" (fun _ ->
   MSBuildRelease buildReleaseDir "Build" ["./FSharp.AutoComplete.fsproj"]
-  |> Log "Build-Output: "
-)
-
-Target "BuildEmacs" (fun _ ->
-  MSBuildDebug "../emacs/bin" "Build" ["./FSharp.AutoComplete.fsproj"]
   |> Log "Build-Output: "
 )
 
@@ -104,6 +100,60 @@ Target "IntegrationTest" (fun _ ->
       trace (toLines out)
       failwithf "Integration tests failed:\n%s" err
 )
+
+
+Target "BuildEmacs" (fun _ ->
+  MSBuildDebug "../emacs/bin" "Build" ["./FSharp.AutoComplete.fsproj"]
+  |> Log "Build-Output: "
+)
+
+module Emacs =
+  //Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
+  let emacsd = Path.GetFullPath "../emacs/"
+  let srcFiles = !! (emacsd + "*.el")
+
+  let testd = emacsd + "test/"
+  let integrationTests = !! (testd + "/integration-tests.el")
+  let utils = !! (testd + "/test-common.el")
+  let unitTests = !! (testd + "/*tests.el") -- (testd + "/integration-tests.el")
+
+  let tmpd = emacsd + "tmp/"
+  let bind = emacsd + "bin/"
+
+  let exe = "c:/utils/emacs/bin/emacs.exe"
+  let opts = "--batch -f run-fsharp-tests"
+
+  let compileOpts = """--batch --eval "(package-initialize)" --eval "(add-to-list 'load-path \".\")" --eval "(setq byte-compile-error-on-warn t)" -f batch-byte-compile """
+                      + (String.concat " " [ for f in srcFiles do yield f ])
+
+  let makeLoad glob =
+    [ for f in glob do yield "-l " + f ]
+    |> String.concat " "
+
+Target "EmacsTest" (fun _ ->
+  if not (Directory.Exists Emacs.tmpd) then
+    Directory.CreateDirectory Emacs.tmpd |> ignore
+  let home = Environment.GetEnvironmentVariable("HOME")
+  Environment.SetEnvironmentVariable("HOME", Emacs.tmpd)
+
+  let loadFiles = Emacs.makeLoad Emacs.utils
+  let loadUnitTests = Emacs.makeLoad Emacs.unitTests
+  let loadIntegrationTests = Emacs.makeLoad Emacs.integrationTests
+
+  tracefn "Setting HOME to '%s" Emacs.tmpd
+  let r =
+    ProcessTestRunner.RunConsoleTests
+      (fun p -> { p with WorkingDir = "../emacs" })
+      [ Emacs.exe, String.concat " " [loadFiles; loadUnitTests; Emacs.opts]
+        Emacs.exe, Emacs.compileOpts ]
+
+//  ProcessTestRunner.RunConsoleTests
+//      (fun p -> { p with WorkingDir = "../emacs/test" })
+//      [ Emacs.exe, String.concat " " [loadFiles; loadIntegrationTests; Emacs.opts] ]
+
+  Environment.SetEnvironmentVariable("HOME", home)
+)
+
 
 Target "Test" id
 Target "All" id
