@@ -109,18 +109,21 @@ Target "BuildEmacs" (fun _ ->
 
 module Emacs =
   //Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
-  let emacsd = Path.GetFullPath "../emacs/"
+  let emacsd = "../emacs/"
   let srcFiles = !! (emacsd + "*.el")
 
   let testd = emacsd + "test/"
   let integrationTests = !! (testd + "/integration-tests.el")
   let utils = !! (testd + "/test-common.el")
-  let unitTests = !! (testd + "/*tests.el") -- (testd + "/integration-tests.el")
+  let unitTests = !! (testd + "*tests.el") -- (testd + "/integration-tests.el")
+
+  tracefn "unittests: %A" unitTests
+  tracefn "unittests: %A" [ for f in unitTests do yield f ]
 
   let tmpd = emacsd + "tmp/"
   let bind = emacsd + "bin/"
 
-  let exe = "c:/utils/emacs/bin/emacs.exe"
+  let exe = "emacs"
   let opts = "--batch -f run-fsharp-tests"
 
   let compileOpts = """--batch --eval "(package-initialize)" --eval "(add-to-list 'load-path \".\")" --eval "(setq byte-compile-error-on-warn t)" -f batch-byte-compile """
@@ -134,7 +137,7 @@ Target "EmacsTest" (fun _ ->
   if not (Directory.Exists Emacs.tmpd) then
     Directory.CreateDirectory Emacs.tmpd |> ignore
   let home = Environment.GetEnvironmentVariable("HOME")
-  Environment.SetEnvironmentVariable("HOME", Emacs.tmpd)
+  Environment.SetEnvironmentVariable("HOME", Path.GetFullPath Emacs.tmpd)
 
   let loadFiles = Emacs.makeLoad Emacs.utils
   let loadUnitTests = Emacs.makeLoad Emacs.unitTests
@@ -166,7 +169,7 @@ Target "All" id
   ==> "BuildDebug"
   ==> "IntegrationTest"
 
-"EmacsBuild"
+"BuildEmacs"
   ==> "EmacsTest"
 
 "EmacsTest" ==> "Test"
