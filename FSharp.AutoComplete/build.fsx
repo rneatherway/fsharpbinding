@@ -179,5 +179,7 @@ Target "All" id
 
 tracefn "Machine Environment:\n%A"
         (Fake.EnvironmentHelper.getMachineEnvironment())
+
+tracefn "Path: %s" (EnvironmentHelper.environVarOrDefault "PATH" "EMPTY")
 RunTargetOrDefault "BuildDebug"
 
