@@ -1,5 +1,5 @@
 install:
   - cinst Emacs
 build_script:
-  - ps: FSharp.AutoComplete\fake.cmd Test
+  - ps: FSharp.AutoComplete\fake.cmd EmacsTest
 test: off
