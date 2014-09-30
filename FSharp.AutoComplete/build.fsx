@@ -143,7 +143,7 @@ Target "EmacsTest" (fun _ ->
   let loadUnitTests = Emacs.makeLoad Emacs.unitTests
   let loadIntegrationTests = Emacs.makeLoad Emacs.integrationTests
 
-  tracefn "Setting HOME to '%s" Emacs.tmpd
+  tracefn "Setting HOME to '%s" (Path.GetFullPath Emacs.tmpd)
   let r =
     ProcessTestRunner.RunConsoleTests
       (fun p -> { p with WorkingDir = "../emacs" })
