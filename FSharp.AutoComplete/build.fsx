@@ -123,7 +123,11 @@ module Emacs =
   let tmpd = emacsd + "tmp/"
   let bind = emacsd + "bin/"
 
-  let exe = "emacs"
+  let exe =
+    match BuildServerHelper.buildServer with
+    | AppVeyor -> "c:/ProgramData/chocolatey/lib/emacs.24.3.0.20140722/tools/emacs-24.3/bin"
+    | _ -> "emacs"
+
   let opts = "--batch -f run-fsharp-tests"
 
   let compileOpts = """--batch --eval "(package-initialize)" --eval "(add-to-list 'load-path \".\")" --eval "(setq byte-compile-error-on-warn t)" -f batch-byte-compile """
