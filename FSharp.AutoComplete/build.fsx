@@ -109,7 +109,7 @@ Target "BuildEmacs" (fun _ ->
 
 module Emacs =
   //Environment.CurrentDirectory <- __SOURCE_DIRECTORY__
-  let emacsd = "../emacs/"
+  let emacsd = Path.GetFullPath "../emacs/"
   let srcFiles = !! (emacsd + "*.el")
 
   let testd = emacsd + "test/"
@@ -124,14 +124,16 @@ module Emacs =
   let bind = emacsd + "bin/"
 
   let exe =
-    match BuildServerHelper.buildServer with
-    | AppVeyor -> "c:/ProgramData/chocolatey/lib/emacs.24.3.0.20140722/tools/emacs-24.3/bin"
-    | _ -> "emacs"
+    match buildServer with
+    | AppVeyor -> Path.GetFullPath "../emacs-local/bin/emacs.exe"
+    | _ -> @"emacs"
 
   let opts = "--batch -f run-fsharp-tests"
 
-  let compileOpts = """--batch --eval "(package-initialize)" --eval "(add-to-list 'load-path \".\")" --eval "(setq byte-compile-error-on-warn t)" -f batch-byte-compile """
-                      + (String.concat " " [ for f in srcFiles do yield f ])
+  let compileOpts =
+    sprintf """--batch --eval "(package-initialize)" --eval "(add-to-list 'load-path \"%s\")" --eval "(setq byte-compile-error-on-warn t)" -f batch-byte-compile %s"""
+      "."
+      (String.concat " " [ for f in srcFiles do yield f ])
 
   let makeLoad glob =
     [ for f in glob do yield "-l " + f ]
@@ -154,9 +156,9 @@ Target "EmacsTest" (fun _ ->
       [ Emacs.exe, String.concat " " [loadFiles; loadUnitTests; Emacs.opts]
         Emacs.exe, Emacs.compileOpts ]
 
-//  ProcessTestRunner.RunConsoleTests
-//      (fun p -> { p with WorkingDir = "../emacs/test" })
-//      [ Emacs.exe, String.concat " " [loadFiles; loadIntegrationTests; Emacs.opts] ]
+  ProcessTestRunner.RunConsoleTests
+       (fun p -> { p with WorkingDir = "../emacs/test" })
+       [ Emacs.exe, String.concat " " [loadFiles; loadIntegrationTests; Emacs.opts] ]
 
   Environment.SetEnvironmentVariable("HOME", home)
 )
