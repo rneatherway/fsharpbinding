@@ -117,9 +117,6 @@ module Emacs =
   let utils = !! (testd + "/test-common.el")
   let unitTests = !! (testd + "*tests.el") -- (testd + "/integration-tests.el")
 
-  tracefn "unittests: %A" unitTests
-  tracefn "unittests: %A" [ for f in unitTests do yield f ]
-
   let tmpd = emacsd + "tmp/"
   let bind = emacsd + "bin/"
 
@@ -149,16 +146,15 @@ Target "EmacsTest" (fun _ ->
   let loadUnitTests = Emacs.makeLoad Emacs.unitTests
   let loadIntegrationTests = Emacs.makeLoad Emacs.integrationTests
 
-  tracefn "Setting HOME to '%s" (Path.GetFullPath Emacs.tmpd)
   let r =
     ProcessTestRunner.RunConsoleTests
       (fun p -> { p with WorkingDir = "../emacs" })
       [ Emacs.exe, String.concat " " [loadFiles; loadUnitTests; Emacs.opts]
         Emacs.exe, Emacs.compileOpts ]
 
-  ProcessTestRunner.RunConsoleTests
-       (fun p -> { p with WorkingDir = "../emacs/test" })
-       [ Emacs.exe, String.concat " " [loadFiles; loadIntegrationTests; Emacs.opts] ]
+  // ProcessTestRunner.RunConsoleTests
+  //      (fun p -> { p with WorkingDir = "../emacs/test" })
+  //      [ Emacs.exe, String.concat " " [loadFiles; loadIntegrationTests; Emacs.opts] ]
 
   Environment.SetEnvironmentVariable("HOME", home)
 )
