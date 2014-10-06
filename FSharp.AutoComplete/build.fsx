@@ -151,10 +151,10 @@ Target "EmacsTest" (fun _ ->
       Emacs.exe, Emacs.compileOpts ]
 
   match buildServer with
-  | AppVeyor -> () // Not current functional
+  | AppVeyor -> () // Not currently functional
   | _ ->
     ProcessTestRunner.RunConsoleTests
-      (fun p -> { p with WorkingDir = Emacs.testd })
+      (fun p -> { p with WorkingDir = Emacs.emacsd })
       [ Emacs.exe, String.concat " " [loadFiles; loadIntegrationTests; Emacs.opts] ]
 
   Environment.SetEnvironmentVariable("HOME", home)
