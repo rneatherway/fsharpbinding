@@ -67,7 +67,7 @@ clean-elc :
 
 # Testing
 
-test unit-test :
+test unit-test : packages
 	HOME=$(tmp_d) ;\
 	$(emacs) $(load_files) $(load_unit_tests) $(emacs_opts)
 
