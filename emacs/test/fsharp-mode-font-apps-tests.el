@@ -51,7 +51,10 @@ FILE is interpreted as relative to this source directory."
 
 
 (ert-deftest fsharp-mode-face-file-test ()
-  (should (fsharp-mode-face-test-apps "apps/FQuake3/NativeMappings.fs"))
-  (should (fsharp-mode-face-test-apps "apps/FSharp.Compatibility/Format.fs")))
+  ;(prefer-coding-system 'utf-8)
+  ;(setq coding-system-for-read 'utf-8)
+  (let ((coding-system-for-read 'utf-8))
+    (should (fsharp-mode-face-test-apps "apps/FQuake3/NativeMappings.fs"))
+    (should (fsharp-mode-face-test-apps "apps/FSharp.Compatibility/Format.fs"))))
 
 ;;; fsharp-mode-font-apps-tests.el ends here
