@@ -7,7 +7,7 @@ open FSharp.InteractiveAutocomplete
 open System.IO
 
 [<Test>]
-let TestProjectLibraryResolution () =
+let TestProjectOutput () =
   let p = ProjectParser.load "../ProjectLoading/data/Test1.fsproj"
   Option.isSome p |> should be True
   let fs = p.Value.Output

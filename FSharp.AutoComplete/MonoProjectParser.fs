@@ -9,36 +9,47 @@ namespace FSharp.InteractiveAutocomplete
 
 open System
 open System.IO
-open Microsoft.Build.BuildEngine
+open System.Xml
+open Microsoft.Build
+open Microsoft.Build.Execution
 open FSharp.CompilerBinding
 
-type MonoProjectParser private (p: Project) =
+type MonoProjectParser private (p: ProjectInstance) =
 
   let loadtime = DateTime.Now
 
   static member Load (uri : string) : Option<IProjectParser> =
-    let p = new Project()
+    
     if File.Exists uri then
       try
-        p.Load(uri)
+        let engine = new Evaluation.ProjectCollection()
+        // for t in engine.Toolsets do
+        //   printfn "Engine Toolset: %s" (t.ToolsVersion)
+        // printfn "Engine DefaultToolsVersion: %s" engine.DefaultToolsVersion
+        // printfn "Engine Toolset Location: %A" engine.ToolsetLocations
+        // engine.DefaultToolsVersion <- "12.0"
+        let xmlReader = XmlReader.Create(uri)
+        let p = engine.LoadProject(xmlReader, "4.0", FullPath=uri)
+        let p = p.CreateProjectInstance()
         Some (new MonoProjectParser(p) :> IProjectParser)
-      with :? InvalidProjectFileException ->
+      with :? Exceptions.InvalidProjectFileException as e ->
+        //printfn "Exception while loading project:\n%A" e
         None
     else
       None
 
   interface IProjectParser with
-    member x.FileName = p.FullFileName
+    member x.FileName = p.FullPath
     member x.LoadTime = loadtime
-    member x.Directory = Path.GetDirectoryName (x :> IProjectParser).FileName
+    member x.Directory = p.Directory
 
     member x.GetFiles =
-      let fs  = p.GetEvaluatedItemsByName("Compile")
+      let fs  = p.GetItems("Compile")
       let dir = (x :> IProjectParser).Directory
-      [| for f in fs do yield IO.Path.Combine(dir, f.FinalItemSpec) |]
+      [| for f in fs do yield IO.Path.Combine(dir, f.EvaluatedInclude) |]
 
     member x.FrameworkVersion =
-      match p.GetEvaluatedProperty("TargetFrameworkVersion") with
+      match p.GetPropertyValue("TargetFrameworkVersion") with
       | "v2.0" -> FSharpTargetFramework.NET_2_0
       | "v3.0" -> FSharpTargetFramework.NET_3_0
       | "v3.5" -> FSharpTargetFramework.NET_3_5
@@ -48,22 +59,24 @@ type MonoProjectParser private (p: Project) =
 
     member x.Output =
       IO.Path.Combine((x :> IProjectParser).Directory,
-                      (p.GetEvaluatedProperty "OutDir"),
-                      (p.GetEvaluatedProperty "TargetFileName"))
+                      (p.GetPropertyValue "OutDir"),
+                      (p.GetPropertyValue "TargetFileName"))
 
     member x.GetReferences =
+      // let l = new Logging.ConsoleLogger() :> Framework.ILogger
+      // l.Verbosity <- Framework.LoggerVerbosity.Detailed
       let x = x :> IProjectParser
-      ignore <| p.Build([|"ResolveAssemblyReferences"|])
-      [| for i in p.GetEvaluatedItemsByName("ResolvedFiles")
-           do yield "-r:" + i.FinalItemSpec
-         for i in p.GetEvaluatedItemsByName("ProjectReference") do
-           let fsproj = Path.Combine(x.Directory, i.FinalItemSpec)
-           match MonoProjectParser.Load fsproj with
+      let b = p.Build([|"ResolveAssemblyReferences"|], [])
+      [| for i in p.GetItems("ReferencePath") do
+           yield "-r:" + i.EvaluatedInclude
+         for cp in p.GetItems("ProjectReference") do
+           match MonoProjectParser.Load (cp.GetMetadataValue("FullPath")) with
            | None -> ()
-           | Some cp -> yield "-r:" + cp.Output |]
+           | Some p' -> yield "-r:" + p'.Output
+      |]
 
     member x.GetOptions =
-      let getprop s = p.GetEvaluatedProperty s
+      let getprop s = p.GetPropertyValue s
       let split (s: string) (cs: char[]) =
         if s = null then [||]
         else s.Split(cs, StringSplitOptions.RemoveEmptyEntries)
