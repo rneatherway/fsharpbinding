@@ -27,6 +27,7 @@ type MonoProjectParser private (p: ProjectInstance) =
         let xmlReader = XmlReader.Create(uri)
         let p = engine.LoadProject(xmlReader, "12.0", FullPath=uri)
         let p = p.CreateProjectInstance()
+        System.GC.SuppressFinalize(Microsoft.Build.Execution.BuildManager.DefaultBuildManager)
         Some (new MonoProjectParser(p) :> IProjectParser)
       with :? Exceptions.InvalidProjectFileException as e ->
         //printfn "Exception while loading project:\n%A" e
