@@ -652,7 +652,7 @@ around to the start of the buffer."
                   msg))
             (error
              (fsharp-ac--log (format "Malformed JSON: %s" (buffer-substring-no-properties (point-min) (point-max))))
-             (message "Error: F# completion process produced malformed JSON."))))))))
+             (message "Error: F# completion process produced malformed JSON: %s" (buffer-substring-no-properties (point-min) (point-max))))))))))
 
 (defun fsharp-ac-filter-output (proc str)
   "Filter STR from the completion process PROC and handle appropriately."
