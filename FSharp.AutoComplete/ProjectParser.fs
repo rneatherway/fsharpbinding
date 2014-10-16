@@ -8,7 +8,7 @@ open System
 module ProjectParser =
 
   let load file =
-    if Type.GetType ("Mono.Runtime") <> null then
+    if true then//Type.GetType ("Mono.Runtime") <> null then
       MonoProjectParser.Load file
     else
       DotNetProjectParser.Load file

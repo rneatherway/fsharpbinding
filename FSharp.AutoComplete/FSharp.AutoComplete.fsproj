@@ -74,11 +74,11 @@
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Numerics" />
-    <Reference Include="Microsoft.Build" />
-    <Reference Include="Microsoft.Build.Engine" />
-    <Reference Include="Microsoft.Build.Framework" />
-    <Reference Include="Microsoft.Build.Tasks.v4.0" />
-    <Reference Include="Microsoft.Build.Utilities.v4.0" />
+    <Reference Include="Microsoft.Build,Version=12.0.0.0" />
+    <Reference Include="Microsoft.Build.Engine,Version=12.0.0.0" />
+    <Reference Include="Microsoft.Build.Framework,Version=12.0.0.0" />
+    <Reference Include="Microsoft.Build.Tasks.v12.0" />
+    <Reference Include="Microsoft.Build.Utilities.v12.0" />
     <Reference Include="NDesk.Options">
       <HintPath>..\lib\ndesk-options\NDesk.Options.dll</HintPath>
     </Reference>

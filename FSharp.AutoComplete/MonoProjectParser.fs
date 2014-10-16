@@ -23,13 +23,9 @@ type MonoProjectParser private (p: ProjectInstance) =
     if File.Exists uri then
       try
         let engine = new Evaluation.ProjectCollection()
-        // for t in engine.Toolsets do
-        //   printfn "Engine Toolset: %s" (t.ToolsVersion)
-        // printfn "Engine DefaultToolsVersion: %s" engine.DefaultToolsVersion
-        // printfn "Engine Toolset Location: %A" engine.ToolsetLocations
-        // engine.DefaultToolsVersion <- "12.0"
+//        engine.DefaultToolsVersion <- "12.0"
         let xmlReader = XmlReader.Create(uri)
-        let p = engine.LoadProject(xmlReader, "4.0", FullPath=uri)
+        let p = engine.LoadProject(xmlReader, "12.0", FullPath=uri)
         let p = p.CreateProjectInstance()
         Some (new MonoProjectParser(p) :> IProjectParser)
       with :? Exceptions.InvalidProjectFileException as e ->
