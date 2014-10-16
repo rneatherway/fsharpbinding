@@ -1,7 +1,7 @@
 language: emacs-lisp
 
 matrix:
-  fast_finish: true
+  fast_finish: false
 
 before_install:
   - sudo add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
@@ -15,5 +15,7 @@ install:
   - sudo apt-get install -yq fsharp
 
 script:
-  - FSharp.AutoComplete/fake Test
+  - FSharp.AutoComplete/fake UnitTest
+  - FSharp.AutoComplete/fake IntegrationTest
+  - FSharp.AutoComplete/fake EmacsTest
 
