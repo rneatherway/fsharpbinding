@@ -1,0 +1,4 @@
+INFO: Synchronous parsing started
+<<EOF>>
+DATA: errors
+<<EOF>>
