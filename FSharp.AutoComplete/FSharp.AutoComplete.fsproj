@@ -58,6 +58,7 @@
   -->
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Debug.fs" />
     <Compile Include="Options.fs" />
     <Compile Include="TipFormatter.fs" />
