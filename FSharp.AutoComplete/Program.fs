@@ -57,6 +57,12 @@ type ProjectResponse =
     Framework: string
   }
 
+type CompilerLocationResponse =
+  {
+    CompilerPath: string
+    MSBuildPath: string
+  }
+
 type FSharpErrorSeverityConverter() =
   inherit JsonConverter()
 
@@ -552,7 +558,9 @@ module internal Main =
 
         match state.OutputMode with
         | Text -> printfn "DATA: compilerlocation\n%s\n<<EOF>>" loc
-        | Json -> prAsJson { Kind = "compilerlocation"; Data = loc }
+        | Json -> prAsJson { Kind = "compilerlocation"
+                             Data = { CompilerPath = loc
+                                      MSBuildPath = DotNetEnvironment.msBuildExe } }
 
         main state
 

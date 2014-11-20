@@ -406,3 +406,58 @@ module FSharpEnvironment =
         | _ -> resolveAssembly dirs asm
     | [] -> None
 
+module DotNetEnvironment =
+
+  let programFileX86 = Environment.GetFolderPath
+                             Environment.SpecialFolder.ProgramFilesX86
+
+  let programFiles =
+    if String.IsNullOrWhiteSpace programFileX86 then
+      Environment.GetFolderPath Environment.SpecialFolder.ProgramFiles
+    else
+      programFileX86
+
+  // Below code slightly modified from FAKE MSBuildHelper.fs
+
+  let inline combinePaths path1 (path2 : string) = Path.Combine(path1, path2.TrimStart [| '\\'; '/' |])
+
+  let inline (@@) path1 path2 = combinePaths path1 path2
+
+  let tryFindFile dirs file =
+      let files =
+          dirs
+          |> Seq.map (fun (path : string) ->
+                 let dir = new DirectoryInfo(path)
+                 if not dir.Exists then ""
+                 else
+                     let fi = new FileInfo(dir.FullName @@ file)
+                     if fi.Exists then fi.FullName
+                     else "")
+          |> Seq.filter ((<>) "")
+          |> Seq.cache
+      if not (Seq.isEmpty files) then Some(Seq.head files)
+      else None
+
+  let tryFindPath backupPaths tool =
+      let paths = Environment.GetEnvironmentVariable "PATH" + string Path.PathSeparator + backupPaths
+      let paths = paths.Split(Path.PathSeparator)
+      tryFindFile paths tool
+
+  let findPath backupPaths tool =
+      match tryFindPath backupPaths tool with
+      | Some file -> file
+      | None -> tool
+
+  let msBuildExe =
+      if Environment.runningOnMono then "xbuild"
+      else
+        let MSBuildPath =
+            (programFiles @@ @"\MSBuild\14.0\Bin") + ";" +
+            (programFiles @@ @"\MSBuild\12.0\Bin") + ";" +
+            (programFiles @@ @"\MSBuild\12.0\Bin\amd64") + ";" +
+            @"c:\Windows\Microsoft.NET\Framework\v4.0.30319\;" +
+            @"c:\Windows\Microsoft.NET\Framework\v4.0.30128\;" +
+            @"c:\Windows\Microsoft.NET\Framework\v3.5\"
+        let ev = Environment.GetEnvironmentVariable "MSBuild"
+        if not (String.IsNullOrEmpty ev) then ev
+        else findPath MSBuildPath "MSBuild.exe"
