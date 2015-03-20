@@ -30,7 +30,7 @@ dest_bin  = $(HOME)/.emacs.d/fsharp-mode/bin/
 
 # ----------------------------------------------------------------------------
 
-.PHONY : test unit-test integration-test packages clean-elc install byte-compile check-compile check-compile run
+.PHONY : test unit-test integration-test packages clean-elc install byte-compile check-compile check-compile run release
 
 # Building
 
@@ -104,3 +104,10 @@ check-compile : packages $(obj_files)
 run : $(ac_exe) packages
 	HOME=$(tmp_d) ;\
 	$(emacs) $(load_files) -f configure-fsharp-tests
+
+# Hacky release target. Assumes that emacs-fsharp-mode-bin is next to
+# fsharpbinding. Also reverts change to FSharp.Core.dll, for which we
+# want to ship a blessed MS version.
+release : $(ac_exe)
+	cp *.el bin/*.dll bin/*.exe ../../emacs-fsharp-mode-bin
+	(cd ../../emacs-fsharp-mode-bin && git checkout FSharp.Core.dll)
