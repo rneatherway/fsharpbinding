@@ -342,7 +342,7 @@ module internal Main =
       let projFile, args =
           match project with
           | None -> file, [|file|]
-          | Some p -> p.Directory + "/Project.fsproj", Array.ofList p.Options
+          | Some p -> p.FullPath, Array.ofList p.Options
       text, projFile, args
 
     // Debug.print "main state is:\nproject: %b\nfiles: %A\nmode: %A"
